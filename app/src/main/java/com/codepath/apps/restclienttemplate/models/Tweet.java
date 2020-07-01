@@ -20,6 +20,7 @@ public class Tweet {
     public String body;
     public String createdAt;
     public User user;
+    public String media;
 
     public Tweet(){
         //Used for Parceler
@@ -29,6 +30,7 @@ public class Tweet {
         tweet.body = jsonObject.getString("text");
         tweet.createdAt = jsonObject.getString("created_at");
         tweet.user = User.fromJson(jsonObject.getJSONObject("user"));
+        tweet.media = Entities.fromJson(jsonObject.getJSONObject("entities")).mediaLink;
         return tweet;
 
     }
