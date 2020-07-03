@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -16,6 +17,9 @@ import android.widget.Toast;
 
 import com.codepath.apps.restclienttemplate.databinding.ActivityTimelineBinding;
 import com.codepath.apps.restclienttemplate.models.Tweet;
+import com.codepath.apps.restclienttemplate.models.TweetDao;
+import com.codepath.apps.restclienttemplate.models.TweetWithUser;
+import com.codepath.apps.restclienttemplate.models.User;
 import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler;
 
 import org.json.JSONException;
@@ -36,7 +40,7 @@ public class TimelineActivity extends AppCompatActivity {
     TweetsAdapter adapter;
     RecyclerView.OnScrollListener scrollListener;
     private SwipeRefreshLayout swipeContainer;
-
+    private TweetDao TweetDao;
 
 
     @Override
@@ -50,6 +54,8 @@ public class TimelineActivity extends AppCompatActivity {
         setContentView(view);
 
         client = TwitterApp.getRestClient(this);
+        TweetDao = ((TwitterApp) getApplicationContext()).getMyDatabase().tweetDao();
+
         rvTweets = findViewById(R.id.rvTweets);
 
         tweets = new ArrayList<Tweet>();
@@ -74,6 +80,18 @@ public class TimelineActivity extends AppCompatActivity {
         rvTweets.addOnScrollListener(scrollListener);
 
         swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
+
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                Log.i(TAG, "run: Getting tweets from database...");
+                List<TweetWithUser> tweetWithUsers = TweetDao.recentItems();
+                List<Tweet> tweetsFromDB = TweetWithUser.getTweetList(tweetWithUsers);
+                adapter.clear();
+                adapter.addAll(tweetsFromDB);
+            }
+        });
+
         // Setup refresh listener which triggers new data loading
         populateHomeTimeline();
         swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -85,6 +103,8 @@ public class TimelineActivity extends AppCompatActivity {
                 populateHomeTimeline();
             }
         });
+
+
 
     }
 
@@ -157,10 +177,23 @@ public class TimelineActivity extends AppCompatActivity {
             public void onSuccess(int statusCode, Headers headers, JSON json) {
                 Log.i(TAG, "onSuccess!!" + json.toString());
                 try {
+                    final List<Tweet> tweetsFromNetwork = Tweet.fromJsonArray(json.jsonArray);
+
                     adapter.clear();
-                    adapter.addAll(Tweet.fromJsonArray(json.jsonArray));
+                    adapter.addAll(tweetsFromNetwork);
                     Log.i(TAG, "onSuccess: Tweets added to tweet model");
                     swipeContainer.setRefreshing(false);
+                    AsyncTask.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.i(TAG, "run: Saving tweets from database...");
+                            //insert users into database first so foreign key can be linked
+                            List<User> users = User.fromJsonTweetList(tweetsFromNetwork);
+                            TweetDao.insertModel(users.toArray(new User[0]));
+                            //insert tweets
+                            TweetDao.insertModel(tweetsFromNetwork.toArray(new Tweet[0]));
+                        }
+                    });
                 } catch (JSONException e) {
                     Log.e(TAG, "Error: Tweets couldn't be added", e);
                     e.printStackTrace();
