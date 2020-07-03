@@ -2,6 +2,8 @@ package com.codepath.apps.restclienttemplate.models;
 
 import android.text.format.DateUtils;
 
+import androidx.room.ColumnInfo;
+import androidx.room.PrimaryKey;
 import androidx.versionedparcelable.ParcelField;
 
 import org.json.JSONArray;
@@ -15,12 +17,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import androidx.room.Entity;
+
+@Entity
 @Parcel
 public class Tweet {
+
+    @ColumnInfo
+    @PrimaryKey(autoGenerate=true)
     public String body;
+
+    @ColumnInfo
     public String createdAt;
+
+    @ColumnInfo
     public User user;
+
+    @ColumnInfo
     public String media;
+
+    @ColumnInfo
+    public long id;
 
     public Tweet(){
         //Used for Parceler
@@ -31,6 +48,8 @@ public class Tweet {
         tweet.createdAt = jsonObject.getString("created_at");
         tweet.user = User.fromJson(jsonObject.getJSONObject("user"));
         tweet.media = Entities.fromJson(jsonObject.getJSONObject("entities")).mediaLink;
+        tweet.id = jsonObject.getLong("id");
+
         return tweet;
 
     }

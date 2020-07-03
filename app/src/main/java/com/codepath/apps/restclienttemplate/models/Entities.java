@@ -1,13 +1,20 @@
 package com.codepath.apps.restclienttemplate.models;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.parceler.Parcel;
 
+import androidx.room.Entity;
+
+@Entity
 @Parcel
 public class Entities {
     public String mediaLink;
+    public static final String TAG = "Entities";
+
 
     public Entities() { }
     public static Entities fromJson(JSONObject jsonObject){
@@ -19,7 +26,7 @@ public class Entities {
         } catch (JSONException e) {
             Entities entities = new Entities();
             entities.mediaLink = "";
-            e.printStackTrace();
+            Log.i(TAG, "fromJson: No media for this tweet!");
             return entities;
         }
 
